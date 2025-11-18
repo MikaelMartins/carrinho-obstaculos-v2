@@ -1,58 +1,44 @@
 /* ============================================================
    PROJETO: FUNDAMENTOS TECNOLÓGICOS II - PRÁTICAS DE EXTENSÃO
    AUTOR: Mikael Aurio Martins de Pula da Silva
-   VERSÃO: 2.3 (Novembro/2025)
+   VERSÃO: 2.4 (Novembro/2025)
 
    -------------------- HISTÓRICO DAS VERSÕES --------------------
 
    V1.0 — Primeira Versão (1 sensor central)
-   - Somente um sensor ultrassônico no centro com scan via servo
-   - Movimento básico com curva proporcional ao ângulo do servo
-   - Algoritmo simples de varredura frontal
-   - Ré curta antes de escanear
-   - Suporte inicial a aceleração gradual
-
    V2.1 — Evolução com 3 sensores
-   - Correção completa mantendo o mapeamento físico dos 4 motores
-   - Adição dos sensores laterais (esquerda e direita)
-   - Centralização lateral proporcional contínua
-   - Redução de colisões por raspagem nas paredes
-
    V2.2 — Melhoria de controle e navegação
-   - Implementação de rampa de aceleração suave
-   - Uso avançado do sonar central com servo para escolha de trajetória
-   - Arquitetura mais modular com funções independentes
+   V2.3 — Otimizações gerais, desvio lateral, ré inteligente
 
-   V2.3 — Versão Atual (esta)
-   - Ré curta executada somente quando realmente necessária
-   - Desvio lateral imediato quando obstáculos surgem próximos nas laterais
-   - Escaneamento mais inteligente com preferência real baseada em leitura
-   - Estrutura reorganizada com funções separadas e claras
-   - Controle de velocidade mais seguro e suave
+   V2.4 — Preferência Configurável de Direção (NOVO)
+   - Adicionada variável global PREFERENCIA_GIRO (0=esq, 1=dir)
+   - Lógica de desvio frontal agora respeita a preferência primeiro
+   - Caso ambas as direções estejam ruins, continua usando o servo para decidir
+   - Comentários atualizados e reorganizados
 
    ---------------------------------------------------------------
    Notas:
-   - Mantido todo o mapeamento físico original dos motores
-   - Código preparado para ambientes estreitos, corredores e áreas internas
-   - Ajuste de limites recomendado (calibração no ambiente real)
-   
+   - Mantido o mapeamento físico original dos motores.
+   - Código preparado para ambientes estreitos e corredores.
+   - Ajuste de limites recomendado após montagem física real.
 =========================================================================== */
 
 #include <AFMotor.h>
 #include <NewPing.h>
 #include <Servo.h>
 
-// ===== MOTORES (mapeamento validado) =====
-// motor1: frente direita
-// motor2: frente esquerda
-// motor3: traseira esquerda
-// motor4: traseira direita
+// ===== CONFIGURAÇÃO DE PREFERÊNCIA DE GIRO =====
+// 0 → preferir virar ESQUERDA primeiro
+// 1 → preferir virar DIREITA primeiro
+int PREFERENCIA_GIRO = 0;   // <<< ALTERE AQUI SE NECESSÁRIO
+
+// ===== MOTORES =====
 AF_DCMotor motor1(1, MOTOR12_64KHZ); // frente direita
 AF_DCMotor motor2(2, MOTOR12_64KHZ); // frente esquerda
 AF_DCMotor motor3(3, MOTOR34_64KHZ); // traseira esquerda
 AF_DCMotor motor4(4, MOTOR34_64KHZ); // traseira direita
 
-// ===== SENSORES (pinos originais) =====
+// ===== SENSORES =====
 #define TRIG_CENTRO  A1
 #define ECHO_CENTRO  A4
 #define TRIG_ESQ     A0
@@ -72,7 +58,7 @@ const int ANG_LEFT = 150;
 const int ANG_CENTER = 90;
 const int ANG_RIGHT = 30;
 
-// ===== PARÂMETROS DE MOVIMENTO =====
+// ===== PARÂMETROS =====
 const int BASE_SPEED_MIN = 120;
 const int BASE_SPEED_MAX = 200;
 const int SPEED_HOLD = 200;
@@ -84,7 +70,7 @@ const int RAMP_DELAY_MS = 10;
 // ===== ESTADO =====
 int dEsqScan = 0, dDirScan = 0, dCen = 0;
 
-// ===== SENSOR AUX =====
+// ===== FUNÇÕES AUX =====
 int medir(NewPing &s){
   delay(15);
   int d = s.ping_cm();
@@ -156,23 +142,20 @@ void scanComServo(){
   servoRadar.write(ANG_CENTER); delay(60); dCen = medir(sonarCentro);
 }
 
-// ===== LÓGICA PRINCIPAL =====
+// =============================================================
+//               LÓGICA PRINCIPAL — VERSÃO 2.4
+//        Preferência de giro implementada abaixo
+// =============================================================
 void loopLogica(){
   int front = medir(sonarCentro);
   int lateralEsq = medir(sonarEsq);
   int lateralDir = medir(sonarDir);
 
-  // ===== DESVIO LATERAL IMEDIATO =====
-  if(lateralEsq < 20){
-    virarDirCurta(200);
-    return;
-  }
-  if(lateralDir < 20){
-    virarEsqCurta(200);
-    return;
-  }
+  // ===== DESVIO LATERAL =====
+  if(lateralEsq < 20){ virarDirCurta(200); return; }
+  if(lateralDir < 20){ virarEsqCurta(200); return; }
 
-  // ===== CAMINHO LIVRE À FRENTE =====
+  // ===== CAMINHO LIVRE =====
   if(front > LIMITE_FRENTE){
     rampTo(BASE_SPEED_MAX);
 
@@ -187,12 +170,13 @@ void loopLogica(){
     if(erro > 3){
       velLeft  -= ganho;
       velRight += ganho;
-    } else if(erro < -3){
+    }
+    else if(erro < -3){
       velLeft  += ganho;
       velRight -= ganho;
     }
 
-    moverFrenteVel(constrain(velLeft, 90, 255), constrain(velRight, 90, 255));
+    moverFrenteVel(constrain(velLeft,90,255), constrain(velRight,90,255));
     return;
   }
 
@@ -200,15 +184,39 @@ void loopLogica(){
   pararTudo();
   scanComServo();
 
-  if(dEsqScan > dDirScan + 6){
-    virarEsqCurta(280);
-    if(medir(sonarCentro) > LIMITE_FRENTE) return;
-  } else if(dDirScan > dEsqScan + 6){
-    virarDirCurta(280);
-    if(medir(sonarCentro) > LIMITE_FRENTE) return;
-  } else {
-    marchaReCurta(300);
-    if(random(0,2)==0) virarEsqCurta(300); else virarDirCurta(300);
+  bool esquerdaBoa = dEsqScan > LIMITE_FRENTE;
+  bool direitaBoa  = dDirScan > LIMITE_FRENTE;
+
+  // ===== PRIMEIRO SEGUE A PREFERÊNCIA DE GIRO =====
+  if(PREFERENCIA_GIRO == 0){   // Preferir ESQUERDA
+    if(esquerdaBoa){
+      virarEsqCurta(280);
+      return;
+    }
+    if(direitaBoa){
+      virarDirCurta(280);
+      return;
+    }
+  }
+  else {                       // Preferir DIREITA
+    if(direitaBoa){
+      virarDirCurta(280);
+      return;
+    }
+    if(esquerdaBoa){
+      virarEsqCurta(280);
+      return;
+    }
+  }
+
+  // ===== SE NENHUMA DAS DUAS ESTÁ BOA → RE AGE E DECIDE =====
+  marchaReCurta(300);
+
+  if(dEsqScan > dDirScan) virarEsqCurta(300);
+  else if(dDirScan > dEsqScan) virarDirCurta(300);
+  else {
+    if(PREFERENCIA_GIRO==0) virarEsqCurta(300);
+    else virarDirCurta(300);
   }
 
   if(medir(sonarCentro) < LIMITE_FRENTE){
