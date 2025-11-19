@@ -34,6 +34,12 @@ Este repositório contém o firmware atualizado do carrinho autônomo baseado em
 - Melhor organização do loop principal
 - Navegação estável, segura e suave
 
+### V2.4 — Preferência Configurável de Direção (atual)
+- Adicionada variável global PREFERENCIA_GIRO (0 = esquerda, 1 = direita)
+- Sistema de desvio frontal passa a respeitar a preferência antes de decidir pelo servo
+- Se ambas as direções forem ruins, o robô recua e escolhe o melhor lado automaticamente
+- Organização de comentários e estrutura do código revisada
+
 ---
 
 ## 🧩 Estrutura Geral do Código
