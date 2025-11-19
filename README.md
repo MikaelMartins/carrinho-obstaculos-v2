@@ -1,8 +1,8 @@
-# 🚗🤖 Robô Autônomo Arduino — Versão 2.3
+# 🚗🤖 Robô Autônomo Arduino
 
 **Fundamentos Tecnológicos II — Práticas de Extensão**  
 **Autor:** Mikael Aurio Martins de Pula da Silva  
-**Versão:** 2.3 (Novembro/2025)
+**Versão:** 2.4 (Novembro/2025)
 
 Este repositório contém o firmware atualizado do carrinho autônomo baseado em Arduino, utilizando 3 sensores ultrassônicos, servo para varredura e controle individual de 4 motores DC. A versão 2.3 incorpora navegação mais inteligente, desvio lateral imediato, rampa de aceleração e lógica modular.
 
