@@ -108,7 +108,7 @@ void moverFrenteVel(int velLeft, int velRight){
   runRight(BACKWARD);
 }
 
-void marchaReCurta(int dur_ms = 250){
+void marchaRe(int dur_ms = 250){
   setLeftSpeed(BASE_SPEED_MIN);
   setRightSpeed(BASE_SPEED_MIN);
   runLeft(FORWARD);
@@ -117,7 +117,7 @@ void marchaReCurta(int dur_ms = 250){
   pararTudo();
 }
 
-void virarEsqCurta(int dur_ms = 260){
+void virarEsquerda(int dur_ms = 260){
   setLeftSpeed(SPEED_HOLD);
   setRightSpeed(SPEED_HOLD);
   runLeft(FORWARD);
@@ -126,7 +126,7 @@ void virarEsqCurta(int dur_ms = 260){
   pararTudo();
 }
 
-void virarDirCurta(int dur_ms = 260){
+void virarDireita(int dur_ms = 260){
   setLeftSpeed(SPEED_HOLD);
   setRightSpeed(SPEED_HOLD);
   runLeft(BACKWARD);
@@ -152,8 +152,8 @@ void loopLogica(){
   int lateralDir = medir(sonarDir);
 
   // ===== DESVIO LATERAL =====
-  if(lateralEsq < 20){ virarDirCurta(200); return; }
-  if(lateralDir < 20){ virarEsqCurta(200); return; }
+  if(lateralEsq < 20){ virarDireita(200); return; }
+  if(lateralDir < 20){ virarEsquerda(200); return; }
 
   // ===== CAMINHO LIVRE =====
   if(front > LIMITE_FRENTE){
@@ -190,37 +190,37 @@ void loopLogica(){
   // ===== PRIMEIRO SEGUE A PREFERÊNCIA DE GIRO =====
   if(PREFERENCIA_GIRO == 0){   // Preferir ESQUERDA
     if(esquerdaBoa){
-      virarEsqCurta(280);
+      virarEsquerda(280);
       return;
     }
     if(direitaBoa){
-      virarDirCurta(280);
+      virarDireita(280);
       return;
     }
   }
   else {                       // Preferir DIREITA
     if(direitaBoa){
-      virarDirCurta(280);
+      virarDireita(280);
       return;
     }
     if(esquerdaBoa){
-      virarEsqCurta(280);
+      virarEsquerda(280);
       return;
     }
   }
 
   // ===== SE NENHUMA DAS DUAS ESTÁ BOA → RE AGE E DECIDE =====
-  marchaReCurta(300);
+  marchaRe(300);
 
-  if(dEsqScan > dDirScan) virarEsqCurta(300);
-  else if(dDirScan > dEsqScan) virarDirCurta(300);
+  if(dEsqScan > dDirScan) virarEsquerda(300);
+  else if(dDirScan > dEsqScan) virarDireita(300);
   else {
-    if(PREFERENCIA_GIRO==0) virarEsqCurta(300);
-    else virarDirCurta(300);
+    if(PREFERENCIA_GIRO==0) virarEsquerda(300);
+    else virarDireita(300);
   }
 
   if(medir(sonarCentro) < LIMITE_FRENTE){
-    marchaReCurta(350);
+    marchaRe(350);
   }
 }
 
