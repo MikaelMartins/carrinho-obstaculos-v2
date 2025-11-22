@@ -110,8 +110,8 @@ Este repositório contém o firmware atualizado do carrinho autônomo baseado em
 ## 📁 Estrutura do Repositório
 
 ```cpp
-/src
-└── codigo_carrinho_v2.3.ino // firmware principal
+/
+└── Desvia_de_Obstaculo_3s.ino // firmware principal
 README.md // documentação
 LICENSE // licença do projeto
 ```
